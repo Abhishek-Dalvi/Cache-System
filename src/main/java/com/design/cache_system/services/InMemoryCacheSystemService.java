@@ -11,7 +11,7 @@ import com.design.cache_system.repo.MockDBRepository;
 @Service
 public class InMemoryCacheSystemService {
 	
-	private ConcurrentHashMap<String, String> myMap = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, String> myMap = new ConcurrentHashMap<>();
 	
 	@Autowired
 	MockDBRepository mockDbRepo;
@@ -20,16 +20,16 @@ public class InMemoryCacheSystemService {
 		
 		String value;
 		
-		if(myMap.contains(key)) {
+		if(myMap.containsKey(key)) {
 			value = myMap.get(key);
-			
-		} else if(mockDbRepo.findByKey(key)!=null) {
-			value = mockDbRepo.findByKey(key);
-			myMap.put(key, value);
-			
 		} else {
-			
-			throw new Exception("Key: " + key + " doesn't exist!");
+			String repoVal = mockDbRepo.findByKey(key);
+			if (repoVal != null) {
+				value = repoVal;
+				myMap.put(key, value);
+			} else {
+				throw new Exception("Key: " + key + " doesn't exist!");
+			}
 		}
 		
 		return value;
@@ -40,7 +40,6 @@ public class InMemoryCacheSystemService {
 		MockDB mockDB = new MockDB(Key, Val);
 		
 		mockDbRepo.save(mockDB);
-		myMap.put(Key, Val);
 	}
 
 }
