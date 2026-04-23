@@ -15,6 +15,9 @@ public class CacheEntry {
 	public void setExpiryTime(Long expiryTime) {
 		this.expiryTime = expiryTime;
 	}
+	public CacheEntry(String value, Long expiryTime) {
+		this.value = value;
+		this.expiryTime = expiryTime;
+	}
 	
-
 }
