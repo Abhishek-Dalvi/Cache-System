@@ -45,8 +45,6 @@ public class CacheRetrievalTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-		
 	}
-
+	
 }

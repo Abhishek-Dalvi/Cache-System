@@ -2,6 +2,7 @@ package com.design.cache_system.repo;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.stereotype.Repository;
 
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Repository;
 public class MockDBRepository {
 
 	private final Map<String, String> store = new ConcurrentHashMap<>();
+	
+	private AtomicInteger atomicInteger = new AtomicInteger();
 
 	public void save(MockDB mockDB) {
 		store.put(mockDB.getKey(), mockDB.getValue());
@@ -17,6 +20,7 @@ public class MockDBRepository {
 	public String findByKey(String key) throws Exception {
 		try {
 			Thread.sleep(200); // simulate latency
+			atomicInteger.incrementAndGet();
 			return store.get(key);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -37,5 +41,9 @@ public class MockDBRepository {
 			throw new Exception(e.getMessage());
 		}
 
+	}
+
+	public AtomicInteger getAtomicInteger() {
+		return atomicInteger;
 	}
 }
