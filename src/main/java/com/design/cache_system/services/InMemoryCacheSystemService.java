@@ -1,5 +1,6 @@
 package com.design.cache_system.services;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,38 +20,35 @@ public class InMemoryCacheSystemService {
 	
 	private final long TTL = 5000L;
 	
+	private final Map<String, Object> locks = new ConcurrentHashMap<>();
+	
 	public String getValue(String key) throws Exception {
 		
-		CacheEntry cacheEntry;
-		String repoVal;
+		CacheEntry entry = myMap.get(key);
 		
-		if(!myMap.containsKey(key)) {
-			repoVal = mockDbRepo.findByKey(key);
-			if (repoVal==null) {
-				throw new Exception("Key: " + key + " doesn't exist!");
-			}
-			long currentTime = System.currentTimeMillis();
-			long expTime = currentTime + TTL;
-			cacheEntry = new CacheEntry(repoVal, expTime);
-			myMap.put(key, cacheEntry);
-			return repoVal;
-		} else {
-			CacheEntry cacheVal = myMap.get(key);
-			
-			if(cacheVal.getExpiryTime()> System.currentTimeMillis()) {
-				return cacheVal.getValue();
-			} else {
-				repoVal = mockDbRepo.findByKey(key);
-				if (repoVal==null) {
-					throw new Exception("Key: " + key + " doesn't exist!");
+		if(entry == null || entry.getExpiryTime() < System.currentTimeMillis()) {
+			Object lock = locks.computeIfAbsent(key, k -> new Object());
+			// Synchronized block
+			synchronized (lock) {
+				entry = myMap.get(key);
+				if(entry == null || entry.getExpiryTime() < System.currentTimeMillis()) {
+					String repoVal = mockDbRepo.findByKey(key);
+					if (repoVal==null) {
+						throw new Exception("Key: " + key + " doesn't exist!");
+					}
+					fetchDBupdateCache(key, repoVal);
 				}
-				long currentTime = System.currentTimeMillis();
-				long expTime = currentTime + TTL;
-				cacheEntry = new CacheEntry(repoVal, expTime);
-				myMap.put(key, cacheEntry);
-				return repoVal;
 			}
 		}
+		
+		return myMap.get(key).getValue();
+	}
+	
+	private void fetchDBupdateCache(String key, String repoVal) {
+		long currentTime = System.currentTimeMillis();
+		long expTime = currentTime + TTL;
+		CacheEntry cacheEntry = new CacheEntry(repoVal, expTime);
+		myMap.put(key, cacheEntry);
 	}
 	
 	public void setKV(String Key, String Val) {

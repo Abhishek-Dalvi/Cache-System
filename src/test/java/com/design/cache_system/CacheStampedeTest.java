@@ -4,7 +4,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ public class CacheStampedeTest {
 	@Autowired
 	private InMemoryCacheSystemService inMemoryCacheSystemService;
 	
-	@Test
+	@RepeatedTest(100)
 	@Execution(ExecutionMode.SAME_THREAD)
 	public void stampedeTest() throws InterruptedException {
 		
@@ -35,6 +35,7 @@ public class CacheStampedeTest {
 		
 		int threadCounts = 50;
 		CountDownLatch startLatch = new CountDownLatch(1);
+		CountDownLatch doneLatch = new CountDownLatch(threadCounts); // wait for completion
 		
 		for (int i = 0; i < threadCounts; i++) {
             Thread t = new Thread(() -> {
@@ -44,21 +45,22 @@ public class CacheStampedeTest {
                     
                 } catch (Exception e) {
                     Thread.currentThread().interrupt();
-                }
+                } finally {
+					doneLatch.countDown();
+				}
             });
             t.start();
         }
 		
 		// Simulate setup work before starting all threads
-		Thread.sleep(1000);
-        System.out.println("Releasing latch, all threads start together!");
         startLatch.countDown(); // release all threads
         
-        // Fetching DB hit count after completion of threads
-        Thread.sleep(1000);
+        // Wait until all threads finish
+        doneLatch.await();
+        
         AtomicInteger dbHits = mockDBRepository.getAtomicInteger();
         
-        assert (dbHits.get() ==  threadCounts);
+        assert (dbHits.get() ==  1);
 	}
 
 }

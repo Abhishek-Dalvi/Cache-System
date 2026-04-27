@@ -14,13 +14,14 @@ public class MockDBRepository {
 	private AtomicInteger atomicInteger = new AtomicInteger();
 
 	public void save(MockDB mockDB) {
+		atomicInteger.set(0);
 		store.put(mockDB.getKey(), mockDB.getValue());
 	}
 
 	public String findByKey(String key) throws Exception {
 		try {
 			Thread.sleep(200); // simulate latency
-			atomicInteger.incrementAndGet();
+			atomicInteger.getAndAdd(1);
 			return store.get(key);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
