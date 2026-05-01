@@ -1,4 +1,7 @@
 package com.design.cache_system.repo;
+/**
+ * Having value along with cache expiry time in this object
+ */
 
 public class CacheEntry {
 	private String value;

@@ -10,7 +10,7 @@ import com.design.cache_system.repo.CacheEntry;
 import com.design.cache_system.repo.MockDB;
 import com.design.cache_system.repo.MockDBRepository;
 
-@Service
+@Service("inMemoryCacheService")
 public class InMemoryCacheSystemService {
 	
 	private final ConcurrentHashMap<String, CacheEntry> myMap = new ConcurrentHashMap<>();

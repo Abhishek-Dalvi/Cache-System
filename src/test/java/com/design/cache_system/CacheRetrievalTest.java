@@ -8,13 +8,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import com.design.cache_system.repo.MockDB;
 import com.design.cache_system.repo.MockDBRepository;
-import com.design.cache_system.services.InMemoryCacheSystemService;
+import com.design.cache_system.services.RedisLuaCacheSystemService;
 
 @SpringBootTest
 public class CacheRetrievalTest {
 	
 	@Autowired
-	private InMemoryCacheSystemService inMemoryCacheSystemService;
+	private RedisLuaCacheSystemService inMemoryCacheSystemService;
 	
 	@Autowired
 	private MockDBRepository mockDBRepository;

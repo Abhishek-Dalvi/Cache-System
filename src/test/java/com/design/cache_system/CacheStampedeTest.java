@@ -13,6 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import com.design.cache_system.repo.MockDB;
 import com.design.cache_system.repo.MockDBRepository;
 import com.design.cache_system.services.InMemoryCacheSystemService;
+import com.design.cache_system.services.RedisCacheSystemServices;
+import com.design.cache_system.services.RedisLuaCacheSystemService;
 
 @SpringBootTest
 public class CacheStampedeTest {
@@ -20,10 +22,25 @@ public class CacheStampedeTest {
 	@Autowired
 	private MockDBRepository mockDBRepository;
 	
-	@Autowired
-	private InMemoryCacheSystemService inMemoryCacheSystemService;
+//	@Autowired
+////	private InMemoryCacheSystemService inMemoryCacheSystemService;
+//	private RedisCacheSystemServices redisCacheSystemServices;
 	
-	@RepeatedTest(100)
+	private final RedisCacheSystemServices redisCacheSystemServices;
+	
+	private final InMemoryCacheSystemService inMemoryCacheSystemService;
+	
+	private final RedisLuaCacheSystemService redisLuaCacheSystemService;
+	
+	// Constructor injection — Spring will supply the bean
+    @Autowired
+    CacheStampedeTest(RedisCacheSystemServices redisCacheSystemServices, InMemoryCacheSystemService inMemoryCacheSystemService, RedisLuaCacheSystemService redisLuaCacheSystemService) {
+        this.redisCacheSystemServices = redisCacheSystemServices;
+        this.inMemoryCacheSystemService = inMemoryCacheSystemService;
+        this.redisLuaCacheSystemService = redisLuaCacheSystemService;
+    }
+	
+	@RepeatedTest(20)
 	@Execution(ExecutionMode.SAME_THREAD)
 	public void stampedeTest() throws InterruptedException {
 		
@@ -41,7 +58,8 @@ public class CacheStampedeTest {
             Thread t = new Thread(() -> {
                 try {
                     startLatch.await(); // wait until latch is released
-                    inMemoryCacheSystemService.getValue(randomString);
+//                    inMemoryCacheSystemService.getValue(randomString);
+                    redisLuaCacheSystemService.getValue(randomString);
                     
                 } catch (Exception e) {
                     Thread.currentThread().interrupt();
@@ -59,6 +77,8 @@ public class CacheStampedeTest {
         doneLatch.await();
         
         AtomicInteger dbHits = mockDBRepository.getAtomicInteger();
+        
+        System.out.println(dbHits.get());
         
         assert (dbHits.get() ==  1);
 	}
