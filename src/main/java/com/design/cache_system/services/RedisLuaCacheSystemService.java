@@ -44,12 +44,19 @@ public class RedisLuaCacheSystemService {
 		try (Jedis jedis = jedisPool.getResource()) {
 			if (!jedis.exists(key)) {
 				
-				// Loading Lua script
-				InputStream stream = new ClassPathResource("scripts/lock_aquire_script.lua").getInputStream();
-				String script = new Scanner(stream, StandardCharsets.UTF_8).useDelimiter("\\A").next();
+				// Loading Lua script for acquire lock
+				InputStream streamLockAcquire = new ClassPathResource("scripts/lock_aquire_script.lua").getInputStream();
+				String scriptLockAcquire = new Scanner(streamLockAcquire, StandardCharsets.UTF_8).useDelimiter("\\A").next();
 				
-				// Load script into Redis and get SHA1
-	            String sha = jedis.scriptLoad(script);
+				// Load script into Redis and get SHA1 for acquiring the lock
+	            String shaAcquire = jedis.scriptLoad(scriptLockAcquire);
+	            
+	            // Loading Lua script for release lock
+				InputStream streamLockRelease= new ClassPathResource("scripts/lock_release_script.lua").getInputStream();
+				String scriptLockRelease= new Scanner(streamLockRelease, StandardCharsets.UTF_8).useDelimiter("\\A").next();
+				
+				// Load script into Redis and get SHA1 for releasing the lock
+	            String shaRelease = jedis.scriptLoad(scriptLockRelease);
 	            
 	            long threadId = Thread.currentThread().getId();
 
@@ -63,18 +70,20 @@ public class RedisLuaCacheSystemService {
 	            
 	            String lockKey = "lock:" + key;
 	            
-	            long isTrue = (long) jedis.evalsha(sha, 1, lockKey, uniqueThreadId, String.valueOf(threadLockTime));
+	            long isTrue = (long) jedis.evalsha(shaAcquire, 1, lockKey, uniqueThreadId, String.valueOf(threadLockTime));
 				
+	            
+	            // Loop for trying to acquire lock (Polling to the redis, all other thread except one which is move ahead for fetching DB, will stay in loop)
 	            while (isTrue !=1) {
 	            	log.debug("Inside while loop for thread id: " + uniqueThreadId );
 	            	Thread.sleep(20);
-	            	// Checking if it is updated at redis to avoid loop forever
+	            	// Checking if it is updated at redis (by another thread which goes to fetch DB) to avoid loop forever
 	            	cacheVal = jedis.get(key);
 	            	if (cacheVal != null) {
 	            		log.debug("Breaking for threadId:"+uniqueThreadId);
 	            		break;
 	            	}
-	            	isTrue = (long) jedis.evalsha(sha, 1, lockKey, uniqueThreadId, String.valueOf(threadLockTime));
+	            	isTrue = (long) jedis.evalsha(shaAcquire, 1, lockKey, uniqueThreadId, String.valueOf(threadLockTime));
 	            }
 	            
 	            // This will allow only one thread will pass to update DB
@@ -85,6 +94,9 @@ public class RedisLuaCacheSystemService {
 						throw new Exception("Key: " + key + " doesn't exist!");
 					}
 					jedis.setex(key,expiredIn, repoVal);
+					
+					//Releasing lock
+					jedis.evalsha(shaRelease, 1, lockKey, uniqueThreadId);
 	            }
 	            
 			}
