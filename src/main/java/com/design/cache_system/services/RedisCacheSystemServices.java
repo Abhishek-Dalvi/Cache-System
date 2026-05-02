@@ -1,6 +1,7 @@
 package com.design.cache_system.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.design.cache_system.repo.MockDB;
@@ -13,7 +14,9 @@ import redis.clients.jedis.JedisPool;
 public class RedisCacheSystemServices {
 	
 	private final JedisPool jedisPool;
-	private final int expiredIn = 5;
+
+	@Value("${cache.ttlSec:5}")
+	private int expiredIn; //5 seconds for jedis.setex
 	
 	@Autowired
 	MockDBRepository mockDbRepo;

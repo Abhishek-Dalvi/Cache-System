@@ -5,7 +5,10 @@ import java.lang.management.ManagementFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +22,14 @@ import redis.clients.jedis.JedisPool;
 public class RedisLuaCacheSystemService {
 	
 	private final JedisPool jedisPool;
-	private final int expiredIn = 50;
-	private final long threadLockTime = 2000L;
+	
+	@Value("${cache.ttlSec:5}")
+	private int expiredIn; //5 seconds for jedis.setex
+	
+	@Value("${cache.threadttlMillisec:500L}")
+	private long threadLockTime; //500 ms for lua script
+	
+	private static final Logger log = LoggerFactory.getLogger(RedisLuaCacheSystemService.class);
 	
 	@Autowired
 	MockDBRepository mockDbRepo;
@@ -50,27 +59,27 @@ public class RedisLuaCacheSystemService {
 
 	            String uniqueThreadId = pid + "-" + threadId;
 	            
-	            System.out.println("Key doesn't exist for id: " + uniqueThreadId);
+	            log.debug("Key doesn't exist for id: " + uniqueThreadId);
 	            
 	            String lockKey = "lock:" + key;
 	            
 	            long isTrue = (long) jedis.evalsha(sha, 1, lockKey, uniqueThreadId, String.valueOf(threadLockTime));
 				
 	            while (isTrue !=1) {
-	            	System.out.println("Inside while loop for thread id: " + uniqueThreadId );
+	            	log.debug("Inside while loop for thread id: " + uniqueThreadId );
 	            	Thread.sleep(20);
 	            	// Checking if it is updated at redis to avoid loop forever
 	            	cacheVal = jedis.get(key);
 	            	if (cacheVal != null) {
-	            		System.out.println("Breaking");
+	            		log.debug("Breaking for threadId:"+uniqueThreadId);
 	            		break;
 	            	}
-	            	isTrue = (long) jedis.evalsha(sha, 1, key, uniqueThreadId, String.valueOf(threadLockTime));
+	            	isTrue = (long) jedis.evalsha(sha, 1, lockKey, uniqueThreadId, String.valueOf(threadLockTime));
 	            }
 	            
 	            // This will allow only one thread will pass to update DB
 	            if (!jedis.exists(key)) {
-	            	System.out.println("Doing DB fetch for id: " +  uniqueThreadId);
+	            	log.debug("Doing DB fetch for id: " +  uniqueThreadId);
 	            	String repoVal = mockDbRepo.findByKey(key);
 					if (repoVal==null) {
 						throw new Exception("Key: " + key + " doesn't exist!");
@@ -81,7 +90,7 @@ public class RedisLuaCacheSystemService {
 			}
 			
 			cacheVal = jedis.get(key);
-			System.out.println("cache value is: "+ cacheVal);
+			log.debug("cache value is: "+ cacheVal);
 		}
 		return cacheVal;
 		
@@ -90,6 +99,7 @@ public class RedisLuaCacheSystemService {
 	public void setKV(String Key, String Val) {
 		MockDB mockDB = new MockDB(Key, Val);
 		mockDbRepo.save(mockDB);
+		log.debug("Key value stored in DB");
 	}
 
 }

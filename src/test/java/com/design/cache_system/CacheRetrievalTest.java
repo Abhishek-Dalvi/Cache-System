@@ -14,7 +14,7 @@ import com.design.cache_system.services.RedisLuaCacheSystemService;
 public class CacheRetrievalTest {
 	
 	@Autowired
-	private RedisLuaCacheSystemService inMemoryCacheSystemService;
+	private RedisLuaCacheSystemService redisLuaCacheSystemService;
 	
 	@Autowired
 	private MockDBRepository mockDBRepository;
@@ -30,11 +30,11 @@ public class CacheRetrievalTest {
 			
 			long a = System.currentTimeMillis();
 			
-			String val = inMemoryCacheSystemService.getValue(randomString);
+			String val = redisLuaCacheSystemService.getValue(randomString);
 			
 			long b = System.currentTimeMillis();
 			
-			String valAgain = inMemoryCacheSystemService.getValue(randomString);
+			String valAgain = redisLuaCacheSystemService.getValue(randomString);
 			
 			long c = System.currentTimeMillis();
 			

@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -22,9 +24,14 @@ public class CacheStampedeTest {
 	@Autowired
 	private MockDBRepository mockDBRepository;
 	
-//	@Autowired
-////	private InMemoryCacheSystemService inMemoryCacheSystemService;
-//	private RedisCacheSystemServices redisCacheSystemServices;
+	private static final Logger log = LoggerFactory.getLogger(CacheStampedeTest.class);
+	
+	/*
+	 * Note for testing purpose we can just switch the service we want to test
+	 * 1. In Memory cache system works on single pod for this test
+	 * 2. Redis cache system doesn't work for stampede
+	 * 3. Redis Lua script work on multi pod since logic is shifted towards redis server infra
+	 */
 	
 	private final RedisCacheSystemServices redisCacheSystemServices;
 	
@@ -40,7 +47,7 @@ public class CacheStampedeTest {
         this.redisLuaCacheSystemService = redisLuaCacheSystemService;
     }
 	
-	@RepeatedTest(20)
+	@RepeatedTest(100)
 	@Execution(ExecutionMode.SAME_THREAD)
 	public void stampedeTest() throws InterruptedException {
 		
@@ -58,8 +65,8 @@ public class CacheStampedeTest {
             Thread t = new Thread(() -> {
                 try {
                     startLatch.await(); // wait until latch is released
-//                    inMemoryCacheSystemService.getValue(randomString);
-                    redisLuaCacheSystemService.getValue(randomString);
+                    String cacheVal = redisLuaCacheSystemService.getValue(randomString);
+                    assert cacheVal.equals("Hello:"+randomString);
                     
                 } catch (Exception e) {
                     Thread.currentThread().interrupt();
@@ -78,7 +85,7 @@ public class CacheStampedeTest {
         
         AtomicInteger dbHits = mockDBRepository.getAtomicInteger();
         
-        System.out.println(dbHits.get());
+        log.debug("Total DB hits are: " + dbHits.get());
         
         assert (dbHits.get() ==  1);
 	}

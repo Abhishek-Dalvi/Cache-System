@@ -35,7 +35,7 @@ public class MockDBRepository {
 
 	public Map<String, String> findAll() throws Exception {
 		try {
-			Thread.sleep(100);
+			Thread.sleep(200); // simulate latency
 			return store;
 		} catch (InterruptedException e) {
 			e.printStackTrace();

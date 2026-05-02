@@ -7,20 +7,20 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.design.cache_system.services.InMemoryCacheSystemService;
+import com.design.cache_system.services.RedisLuaCacheSystemService;
 
 
 @Controller
 public class DataController {
 	
 	@Autowired
-	private InMemoryCacheSystemService inMemoryCacheSystemService;
+	private RedisLuaCacheSystemService redisLuaCacheSystemService;
 
 	@GetMapping("/kv")
 	public ResponseEntity<String> getMethodName(@RequestParam String param) {
 		String ans = null;
 		try {
-			ans = "For parameter " + param +": " + inMemoryCacheSystemService.getValue(param);
+			ans = "For parameter " + param +": " + redisLuaCacheSystemService.getValue(param);
 			return ResponseEntity.ok(ans);
 		} catch (Exception e) {
 			ans =  "Error is: " + e.getMessage();
@@ -31,7 +31,7 @@ public class DataController {
 	@PostMapping("/kv")
 	public ResponseEntity<String> postData(@RequestParam String key, @RequestParam String value) {
 		try {
-			inMemoryCacheSystemService.setKV(key, value);
+			redisLuaCacheSystemService.setKV(key, value);
 			return ResponseEntity.ok("Data saved successfully");
 		} catch (Exception e) {
 			return ResponseEntity.internalServerError().body(e.getMessage());

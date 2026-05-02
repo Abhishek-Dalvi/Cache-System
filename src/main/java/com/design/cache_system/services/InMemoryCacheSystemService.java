@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.design.cache_system.repo.CacheEntry;
@@ -18,7 +19,8 @@ public class InMemoryCacheSystemService {
 	@Autowired
 	MockDBRepository mockDbRepo;
 	
-	private final long TTL = 5000L;
+	@Value("${cache.ttlSec:5L}")
+	private long expiredIn; //5 seconds for jedis.setex
 	
 	private final Map<String, Object> locks = new ConcurrentHashMap<>();
 	
@@ -46,7 +48,7 @@ public class InMemoryCacheSystemService {
 	
 	private void fetchDBupdateCache(String key, String repoVal) {
 		long currentTime = System.currentTimeMillis();
-		long expTime = currentTime + TTL;
+		long expTime = currentTime + expiredIn * 1000;
 		CacheEntry cacheEntry = new CacheEntry(repoVal, expTime);
 		myMap.put(key, cacheEntry);
 	}
